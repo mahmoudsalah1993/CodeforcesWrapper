@@ -1,6 +1,6 @@
 package CodeforcesWrapper.requests;
 
-import CodeforcesWrapper.Response.FailedResponseException;
+import CodeforcesWrapper.Response.Exceptions.FailedResponseException;
 import CodeforcesWrapper.Response.UserListSuccessfulResponse;
 import CodeforcesWrapper.Response.UserRatingSuccessfulResponse;
 import CodeforcesWrapper.Response.SubmissionListSuccessfulResponse;

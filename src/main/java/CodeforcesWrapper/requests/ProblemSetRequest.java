@@ -1,6 +1,6 @@
 package CodeforcesWrapper.requests;
 
-import CodeforcesWrapper.Response.FailedResponseException;
+import CodeforcesWrapper.Response.Exceptions.FailedResponseException;
 import CodeforcesWrapper.Response.ProblemSetProblemsSuccessfulResponse;
 import CodeforcesWrapper.Response.SubmissionListSuccessfulResponse;
 import CodeforcesWrapper.models.Submission;
@@ -32,7 +32,8 @@ public class ProblemSetRequest {
             throw new FailedResponseException();
         }
     }
-    //http://www.codeforces.com/api/problemset.implementation
+
+
     public static ProblemSetProblemsSuccessfulResponse getProblemSetProblems(ArrayList<String> tags) throws IOException, FailedResponseException {
         String url = baseUrl;
         url =url.concat("problems?tags=");

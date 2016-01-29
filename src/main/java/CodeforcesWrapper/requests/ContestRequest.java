@@ -1,6 +1,7 @@
 package CodeforcesWrapper.requests;
 
 import CodeforcesWrapper.Response.*;
+import CodeforcesWrapper.Response.Exceptions.FailedResponseException;
 import CodeforcesWrapper.models.Contest;
 import CodeforcesWrapper.models.Hack;
 import CodeforcesWrapper.models.RatingChange;
