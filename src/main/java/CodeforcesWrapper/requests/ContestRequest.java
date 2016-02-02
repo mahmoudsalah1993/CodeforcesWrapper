@@ -6,10 +6,13 @@ import CodeforcesWrapper.models.Contest;
 import CodeforcesWrapper.models.Hack;
 import CodeforcesWrapper.models.RatingChange;
 import CodeforcesWrapper.models.Submission;
-import com.google.gson.Gson;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Created by Mahmoud on 29/01/2016.
@@ -18,25 +21,29 @@ public class ContestRequest {
 
     private static String baseUrl = "http://www.codeforces.com/api/contest.";
 
-    public static ArrayList<RatingChange> getContestRatingChanges(int id) throws IOException, FailedResponseException {
+    public static ArrayList<RatingChange> getContestRatingChanges(int id) throws IOException, FailedResponseException, JSONException {
+        ArrayList<RatingChange> ratingChanges = new ArrayList<RatingChange>();
         String url = baseUrl;
         url =url.concat("ratingChanges?contestId=");
         url =url.concat(String.valueOf(id));
         byte[] response = Request.makeRequest(url);
-        InputStream stream = new ByteArrayInputStream(response);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        Gson gson = new Gson();
-        try{
-            UserRatingSuccessfulResponse success = gson.fromJson(reader,UserRatingSuccessfulResponse.class);
-            return success.getRatingChanges();
-        }
-        catch(java.lang.IllegalStateException e){
+        String stringResponse = new String(response);
+        JSONObject jsonObject = new JSONObject(stringResponse);
+        if(!(jsonObject.get("status").toString().equals("OK"))){
             throw new FailedResponseException();
         }
+        else{
+            JSONArray jRatingChanges = jsonObject.getJSONArray("result");
+            for(int i=0 ; i < jRatingChanges.length() ; i++){
+                JSONObject jobj =jRatingChanges.getJSONObject(i);
+                ratingChanges.add(Request.getRatingChange(jobj));
+            }
+        }
+        return ratingChanges;
     }
 
     public static ContestStandingsSuccessfulResponse getContestStandings
-            (int id,int from, int count, ArrayList<String> handles,int room,Boolean showUnofficial) throws IOException, FailedResponseException {
+            (int id,int from, int count, ArrayList<String> handles,int room,Boolean showUnofficial) throws IOException, FailedResponseException, JSONException {
         String url = baseUrl;
         url = url.concat("standings?contestId=");
         url = url.concat(String.valueOf(id));
@@ -63,69 +70,78 @@ public class ContestRequest {
         url = url.concat("&showUnofficial=");
         url = url.concat(String.valueOf(showUnofficial));
         byte[] response = Request.makeRequest(url);
-        InputStream stream = new ByteArrayInputStream(response);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        Gson gson = new Gson();
-        try{
-            ContestStandingsSuccessfulResponse success = gson.fromJson(reader,ContestStandingsSuccessfulResponse.class);
-            return success;
-        }
-        catch(java.lang.IllegalStateException e){
+        String stringResponse = new String(response);
+        JSONObject jsonObject = new JSONObject(stringResponse);
+        if(!(jsonObject.get("status").toString().equals("OK"))){
             throw new FailedResponseException();
+        }
+        else{
+            JSONObject standings = jsonObject.getJSONObject("result");
+            return Request.getStandings(standings);
         }
     }
 
-    public static ArrayList<Submission> getContestSubmissions(int id,String handle,int from,int count) throws IOException, FailedResponseException {
+    public static ArrayList<Submission> getContestSubmissions(int id,String handle,int from,int count) throws IOException, FailedResponseException, JSONException {
+        ArrayList<Submission> submissions = new ArrayList<Submission>();
         String url = baseUrl;
         url = url.concat("status?contestId=");
         url = url.concat(String.valueOf(id));
         if(handle!=null){
             url = url.concat("&handle=");
-            url.concat(handle);
+            url =url.concat(handle);
         }
         if(from!=-1){
             url = url.concat("&from=");
-            url.concat(String.valueOf(from));
+            url =url.concat(String.valueOf(from));
         }
         if(count!=-1){
             url = url.concat("&count=");
-            url.concat(String.valueOf(count));
+            url =url.concat(String.valueOf(count));
         }
         byte[] response = Request.makeRequest(url);
-        InputStream stream = new ByteArrayInputStream(response);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        Gson gson = new Gson();
-        try{
-            SubmissionListSuccessfulResponse success = gson.fromJson(reader,SubmissionListSuccessfulResponse.class);
-            return success.getSubmissions();
-        }
-        catch(java.lang.IllegalStateException e){
+        String stringResponse = new String(response);
+        JSONObject jsonObject = new JSONObject(stringResponse);
+        if(!(jsonObject.get("status").toString().equals("OK"))){
             throw new FailedResponseException();
         }
+        else{
+            JSONArray jSubmissions = jsonObject.getJSONArray("result");
+            for(int i=0 ; i < jSubmissions.length() ; i++){
+                JSONObject jobj =jSubmissions.getJSONObject(i);
+                submissions.add(Request.getSubmission(jobj));
+            }
+        }
+        return submissions;
     }
 
     //Anonymous call for Hacks
     public static ArrayList<Hack> getContestHacks(int id)
-            throws FailedResponseException, IOException {
+            throws FailedResponseException, IOException, InterruptedException, ExecutionException, JSONException {
+        ArrayList<Hack> hacks = new ArrayList<Hack>();
         String url = baseUrl;
         url = url.concat("hacks?contestId=");
         url = url.concat(String.valueOf(id));
         byte[] response = Request.makeRequest(url);
-        InputStream stream = new ByteArrayInputStream(response);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        Gson gson = new Gson();
-        try{
-            ContestHacksSuccessfulResponse success = gson.fromJson(reader,ContestHacksSuccessfulResponse.class);
-            return success.getHacks();
-        }
-        catch(java.lang.IllegalStateException e){
+        String stringResponse = new String(response);
+        JSONObject jsonObject = new JSONObject(stringResponse);
+        if(!(jsonObject.get("status").toString().equals("OK"))){
             throw new FailedResponseException();
         }
+        else{
+            JSONArray jhacks = jsonObject.getJSONArray("result");
+            for(int i=0 ; i < jhacks.length() ; i++){
+                JSONObject jobj =jhacks.getJSONObject(i);
+                hacks.add(Request.getHack(jobj));
+            }
+        }
+        return hacks;
     }
 
     //Non anonymous call for hacks
     public static ArrayList<Hack> getContestHacks(int id,String key,String secret)
-            throws FailedResponseException, IOException {
+            throws FailedResponseException, IOException, JSONException {
+        if(key==null || secret == null)throw new FailedResponseException();
+        ArrayList<Hack> hacks = new ArrayList<Hack>();
         String url = baseUrl;
         url = url.concat("hacks?contestId=");
         url = url.concat(String.valueOf(id));
@@ -143,43 +159,52 @@ public class ContestRequest {
         hashString = hashString.concat(String.valueOf(time));
         hashString = hashString.concat("#");
         hashString = hashString.concat(secret);
-        String apiSig = Request.getSha512(hashString);
+        String apiSig = Request.getApiSig(hashString);
         url = url.concat(apiSig);
         byte[] response = Request.makeRequest(url);
-        InputStream stream = new ByteArrayInputStream(response);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        Gson gson = new Gson();
-        try{
-            ContestHacksSuccessfulResponse success = gson.fromJson(reader,ContestHacksSuccessfulResponse.class);
-            return success.getHacks();
-        }
-        catch(java.lang.IllegalStateException e){
+        String stringResponse = new String(response);
+        JSONObject jsonObject = new JSONObject(stringResponse);
+        if(!(jsonObject.get("status").toString().equals("OK"))){
             throw new FailedResponseException();
         }
+        else{
+            JSONArray jhacks = jsonObject.getJSONArray("result");
+            for(int i=0 ; i < jhacks.length() ; i++){
+                JSONObject jobj =jhacks.getJSONObject(i);
+                hacks.add(Request.getHack(jobj));
+            }
+        }
+        return hacks;
     }
 
     //Anonymous call for contest list
     public static ArrayList<Contest> getContestList(Boolean gym)
-            throws IOException, FailedResponseException {
+            throws IOException, FailedResponseException, JSONException {
+        ArrayList<Contest> contests = new ArrayList<Contest>();
         String url = baseUrl;
         url = url.concat("list?gym=");
         url = url.concat(String.valueOf(gym));
         byte[] response = Request.makeRequest(url);
-        InputStream stream = new ByteArrayInputStream(response);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        Gson gson = new Gson();
-        try{
-            ContestListSuccessfulResponse success = gson.fromJson(reader,ContestListSuccessfulResponse.class);
-            return success.getContests();
-        }
-        catch(java.lang.IllegalStateException e){
+        String stringResponse = new String(response);
+        JSONObject jsonObject = new JSONObject(stringResponse);
+        if(!(jsonObject.get("status").toString().equals("OK"))){
             throw new FailedResponseException();
         }
+        else{
+            JSONArray jcontests = jsonObject.getJSONArray("result");
+            for(int i=0 ; i < jcontests.length() ; i++){
+                JSONObject jobj =jcontests.getJSONObject(i);
+                contests.add(Request.getContest(jobj));
+            }
+        }
+        return contests;
     }
 
     //Defined user call for contest list
     public static ArrayList<Contest> getContestList(Boolean gym, String key , String secret)
-            throws IOException, FailedResponseException {
+            throws IOException, FailedResponseException, JSONException {
+        if(key==null || secret == null)throw new FailedResponseException();
+        ArrayList<Contest> contests = new ArrayList<Contest>();
         String url = baseUrl;
         url = url.concat("list?gym=");
         url = url.concat(String.valueOf(gym));
@@ -197,18 +222,22 @@ public class ContestRequest {
         hashString = hashString.concat(String.valueOf(time));
         hashString = hashString.concat("#");
         hashString = hashString.concat(secret);
-        String apiSig = Request.getSha512(hashString);
+        String apiSig = Request.getApiSig(hashString);
         url = url.concat(apiSig);
         byte[] response = Request.makeRequest(url);
-        InputStream stream = new ByteArrayInputStream(response);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        Gson gson = new Gson();
-        try{
-            ContestListSuccessfulResponse success = gson.fromJson(reader,ContestListSuccessfulResponse.class);
-            return success.getContests();
-        }
-        catch(java.lang.IllegalStateException e){
+        String stringResponse = new String(response);
+        JSONObject jsonObject = new JSONObject(stringResponse);
+        if(!(jsonObject.get("status").toString().equals("OK"))){
             throw new FailedResponseException();
         }
+        else{
+            JSONArray jcontests = jsonObject.getJSONArray("result");
+            for(int i=0 ; i < jcontests.length() ; i++){
+                JSONObject jobj =jcontests.getJSONObject(i);
+                contests.add(Request.getContest(jobj));
+            }
+        }
+        return contests;
     }
+
 }

@@ -10,15 +10,19 @@ import CodeforcesWrapper.models.*;
 import CodeforcesWrapper.requests.ContestRequest;
 import CodeforcesWrapper.requests.ProblemSetRequest;
 import CodeforcesWrapper.requests.UserRequest;
+import org.codehaus.jettison.json.JSONException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 
 /**
  * Created by Mahmoud on 27/01/2016.
  */
 public class Wrapper {
+
+    //All methods return JSONException in case the json response failed to parse
 
     //the strings forming each user's codeforces apiKey
     private String key;
@@ -37,7 +41,7 @@ public class Wrapper {
     /*get rating history of a user , throws IOException in case the request failed to send
     , returns FailedResponseException if response from api had status FAIL,throws RequiredArgumentNullException if argument is null*/
     public ArrayList<RatingChange> getUserRating(String handle) throws RequiredArgumentNullException,
-            IOException, FailedResponseException {
+            IOException, FailedResponseException, JSONException {
         if(handle==null)throw new RequiredArgumentNullException();
         return UserRequest.getUserRating(handle);
     }
@@ -48,10 +52,10 @@ public class Wrapper {
     Throws IOException in case the request failed to send, returns FailedResponseException if response from api had status FAIL
     */
     public ArrayList<Submission> getUserSubmissions(String handle, int from , int count) throws RequiredArgumentNullException,
-            IOException, FailedResponseException {
+            IOException, FailedResponseException, JSONException {
         if(handle==null)throw new RequiredArgumentNullException();
         if(from<1)from=-1;
-        if(count<0)count=-1;
+        if(count<1)count=-1;
         return UserRequest.getUserStatus(handle, from, count);
     }
 
@@ -59,7 +63,7 @@ public class Wrapper {
     who participated in rated contest during the last month. otherwise all are returned. Throws IOException in case
      the request failed to send, returns FailedResponseException if response from api had status FAIL
      */
-    public ArrayList<User> getRatedUsers(Boolean activeOnly) throws IOException, FailedResponseException {
+    public ArrayList<User> getRatedUsers(Boolean activeOnly) throws IOException, FailedResponseException, JSONException {
         return UserRequest.getUserRatedList(activeOnly);
     }
 
@@ -68,7 +72,7 @@ public class Wrapper {
      the request failed to send, returns FailedResponseException if response from api had status FAIL.
     */
     public ArrayList<User> getUserInfo(ArrayList<String> handles) throws RequiredArgumentNullException,
-            IOException, FailedResponseException, ApiLimitException {
+            IOException, FailedResponseException, ApiLimitException, JSONException {
         if(handles==null)throw new RequiredArgumentNullException();
         if(handles.size()>handlesCountLimit)throw new ApiLimitException();
         return UserRequest.getUserInfo(handles);
@@ -80,7 +84,7 @@ public class Wrapper {
      the request failed to send, returns FailedResponseException if response from api had status FAIL.
     */
     public ArrayList<Submission> getRecentSubmissions(int count) throws InvalidArgumentException,
-            IOException, FailedResponseException, ApiLimitException {
+            IOException, FailedResponseException, ApiLimitException, JSONException {
         if(count<=0) throw new InvalidArgumentException();
         if(count> submissionsCountLimit) throw new ApiLimitException();
         return ProblemSetRequest.getProblemSetSubmmissions(count);
@@ -90,7 +94,8 @@ public class Wrapper {
     ProblemStatistics objects. argument tags filters only problems with such tags, if not set returns all problems.
     Throws IOException in case the request failed to send, returns FailedResponseException if response from api had status FAIL.
      */
-    public ProblemSetProblemsSuccessfulResponse getProblems(ArrayList<String> tags) throws IOException, FailedResponseException {
+    public ProblemSetProblemsSuccessfulResponse getProblems(ArrayList<String> tags) throws IOException,
+            FailedResponseException, JSONException {
         if(tags==null){
             tags = new ArrayList<String>();
         }
@@ -104,7 +109,7 @@ public class Wrapper {
       FailedResponseException if response from api had status FAIL.
      */
     public ArrayList<Submission> getContestSubmissions(int contestId , String handle,int from , int count) throws IOException,
-            FailedResponseException {
+            FailedResponseException, JSONException {
         if(from <=0)from = -1;
         if(count<=0)count = -1;
         return ContestRequest.getContestSubmissions(contestId, handle, from, count);
@@ -118,18 +123,18 @@ public class Wrapper {
      if response from api had status FAIL.
      */
     public ContestStandingsSuccessfulResponse getContestStandings(int contestId, int from, int count, ArrayList<String>
-            handles , int room , Boolean showUnofficial) throws IOException, FailedResponseException, ApiLimitException {
+            handles , int room , Boolean showUnofficial) throws IOException, FailedResponseException, ApiLimitException, JSONException {
         if(from <=0)from = -1;
         if(count<=0)count = -1;
         if(room<=0)room = -1;
-        if(handles.size()> handlesCountLimit)throw new ApiLimitException();
+        if(handles!=null && handles.size()> handlesCountLimit)throw new ApiLimitException();
         return ContestRequest.getContestStandings(contestId, from, count, handles, room, showUnofficial);
     }
 
     /*returns a list of RatingChange objects, which are the rating changes after contest specified in required argument
      contestId. Throws IOException in case the request failed to send, returns FailedResponseException if response from
       api had status FAIL.*/
-    public ArrayList<RatingChange> getContestRatingChanges(int contestId) throws IOException, FailedResponseException {
+    public ArrayList<RatingChange> getContestRatingChanges(int contestId) throws IOException, FailedResponseException, JSONException {
         return ContestRequest.getContestRatingChanges(contestId);
     }
 
@@ -137,20 +142,24 @@ public class Wrapper {
     returned If this method is called not anonymously, then all available contests for a calling user will be returned
     too, including mashups and private gyms. Throws IOException in case the request failed to send, returns
     FailedResponseException if response from api had status FAIL.*/
-    public ArrayList<Contest> getContestList(Boolean gym , Boolean anonymous) throws IOException, FailedResponseException {
+    public ArrayList<Contest> getContestList(Boolean gym , Boolean anonymous) throws IOException, FailedResponseException, JSONException {
         if(anonymous)
             return ContestRequest.getContestList(gym);
-        else return ContestRequest.getContestList(gym , key , secret);
+        else return ContestRequest.getContestList(gym, key, secret);
     }
 
     /*Returns list of hacks in the specified contests. Full information about hacks is available only after some time
     after the contest end. During the contest user can see only own hacks if call is sent non-anonymously.Throws
     IOException in case the request failed to send, returns FailedResponseException if response from api had status FAIL.
     */
-    public ArrayList<Hack> getContestHacks(int contestId, Boolean anonymous) throws IOException, FailedResponseException {
-        if(anonymous)
-            return ContestRequest.getContestHacks(contestId);
-        else return ContestRequest.getContestHacks(contestId , key , secret);
+    public ArrayList<Hack> getContestHacks(int contestId, Boolean anonymous) throws IOException, FailedResponseException, InterruptedException, ExecutionException, JSONException {
+        if(anonymous) {
+
+            ArrayList<Hack> temp = new ArrayList<Hack>(10000);
+            temp = ContestRequest.getContestHacks(contestId);
+            return temp;
+        }
+            else return ContestRequest.getContestHacks(contestId , key , secret);
     }
 
     public String getKey() {
